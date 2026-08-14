@@ -117,6 +117,13 @@ function maskHeaders(headers) {
   }
 }
 
+function normalizeApiKey(apiKey) {
+  const trimmed = apiKey.replace(/[\r\n]/g, '').trim();
+  const bearerMatch = trimmed.match(/^bearer\s+(.+)$/i);
+
+  return bearerMatch ? bearerMatch[1].trim() : trimmed;
+}
+
 function parseJsonInput(name) {
   const value = getInput(name, { trimWhitespace: false });
   if (!value.trim()) {
@@ -288,7 +295,7 @@ function createRequestBody(mode, bodyInput, bodyFile, filePath, base64Field) {
 }
 
 async function run() {
-  const apiKey = getInput('api-key', { required: true });
+  const apiKey = normalizeApiKey(getInput('api-key', { required: true }));
   const apiBase = getInput('api-base') || 'https://api.vultr.com/v2';
   const operationInput = getInput('operation');
   const rawPath = getInput('path');
@@ -304,7 +311,11 @@ async function run() {
   const version = getInput('version');
   const useVendorDataInput = getInput('use-vendor-data');
   const installationScript = getInput('installation-script', { trimWhitespace: false });
+  const installationScriptFile = getInput('installation-script-file');
   const osId = getInput('os-id');
+  const installationScriptValue = installationScriptFile
+    ? fs.readFileSync(installationScriptFile, 'utf8')
+    : installationScript;
 
   let definition;
   let operation;
@@ -344,20 +355,33 @@ async function run() {
       requestHeaders['Content-Type'] = requestBody.contentType;
     }
 
-    const response = await fetch(url, {
-      method,
-      headers: requestHeaders,
-      body: requestBody.body,
-    });
-    const responseText = await response.text();
-    const responseHeaders = Object.fromEntries(response.headers.entries());
-    maskHeaders(responseHeaders);
+    for (let attempt = 1; attempt <= 8; attempt += 1) {
+      const response = await fetch(url, {
+        method,
+        headers: requestHeaders,
+        body: requestBody.body,
+      });
+      const responseText = await response.text();
+      const responseHeaders = Object.fromEntries(response.headers.entries());
+      maskHeaders(responseHeaders);
 
-    if (!response.ok && failOnError) {
-      throw new Error(`Vultr API request failed with ${response.status}: ${responseText}`);
+      if (response.status === 429 && attempt < 8) {
+        const retryAfter = Number(response.headers.get('retry-after') || 5);
+        const delaySeconds = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : 5;
+
+        console.log(`Vultr API rate limited ${method} ${url.pathname}; retrying after ${delaySeconds}s`);
+        await new Promise((resolve) => setTimeout(resolve, delaySeconds * 1000));
+        continue;
+      }
+
+      if (!response.ok && failOnError) {
+        throw new Error(`Vultr API request failed with ${response.status}: ${responseText}`);
+      }
+
+      return { response, responseText, responseHeaders };
     }
 
-    return { response, responseText, responseHeaders };
+    throw new Error(`Vultr API request exhausted retries for ${method} ${url.pathname}`);
   };
 
   const outputResult = async (result, buildId) => {
@@ -418,8 +442,8 @@ async function run() {
     if (!values.appId) {
       throw new Error('Input app-id is required for create-build-from-vendor-data');
     }
-    if (!installationScript) {
-      throw new Error('Input installation-script is required for create-build-from-vendor-data');
+    if (!installationScriptValue) {
+      throw new Error('Input installation-script or installation-script-file is required for create-build-from-vendor-data');
     }
     if (!osId) {
       throw new Error('Input os-id is required for create-build-from-vendor-data');
@@ -429,7 +453,7 @@ async function run() {
       requestDefinition: OPERATIONS['create-build-image'],
       requestBody: createJsonBody({
         use_vendor_data: useVendorDataInput ? useVendorDataInput.toLowerCase() !== 'false' : true,
-        installation_script: installationScript,
+        installation_script: installationScriptValue,
         OSID: Number(osId),
       }),
       requestQuery: undefined,

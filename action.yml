@@ -4,7 +4,7 @@ author: Vultr
 
 inputs:
   api-key:
-    description: Vultr API key. Prefer passing secrets.VULTR_API_KEY.
+    description: Vultr API key. Accepts either a raw token or Authorization header value like Bearer token.
     required: true
   operation:
     description: Named Marketplace operation to run. Omit when using method and path directly.
@@ -45,6 +45,9 @@ inputs:
     required: false
   installation-script:
     description: Installation script used by create-build-from-vendor-data.
+    required: false
+  installation-script-file:
+    description: Path to an installation script file used by create-build-from-vendor-data.
     required: false
   os-id:
     description: Operating system ID used by create-build-from-vendor-data.

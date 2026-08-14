@@ -30,7 +30,7 @@ jobs:
 
 | Input | Required | Description |
 | --- | --- | --- |
-| `api-key` | yes | Vultr API key. Use `secrets.VULTR_API_KEY`. |
+| `api-key` | yes | Vultr API key. Accepts either a raw token or `Bearer ...`. |
 | `operation` | no | Named operation, such as `list-apps`, `create-build-image`, or `create-build-from-snapshot`. |
 | `method` | no | HTTP method for raw requests or overriding named operations. |
 | `path` | no | Raw API path relative to `api-base`. Use this for new or changed Vultr endpoints. |
@@ -44,6 +44,7 @@ jobs:
 | `version` | no | Build version used by `create-build-from-snapshot`, `create-build-from-vendor-data`, and `set-build-version`. |
 | `use-vendor-data` | no | Whether to create a build from vendor data. Defaults to `true` for `create-build-from-vendor-data`. |
 | `installation-script` | no | Installation script used by `create-build-from-vendor-data`. |
+| `installation-script-file` | no | Path to an installation script file used by `create-build-from-vendor-data`. |
 | `os-id` | no | Operating system ID used by `create-build-from-vendor-data`. |
 | `vendor-user-id` | no | Marketplace vendor user ID. |
 | `query` | no | JSON object converted to query string parameters. |
@@ -255,10 +256,7 @@ This example creates a Marketplace app build image from an installation script a
     app-id: ${{ inputs.app_id }}
     os-id: ${{ inputs.os_id }}
     version: ${{ inputs.version }}
-    installation-script: |
-      #!/bin/sh
-      set -eu
-      # Install and configure your application here.
+    installation-script-file: ./cloud-config.yaml
 ```
 
 ## Tutorial: Update an Existing Build Version
@@ -277,3 +275,5 @@ This example creates a Marketplace app build image from an installation script a
 ## Notes
 
 Vultr Marketplace endpoints require access to the Marketplace vendor API. If the API returns `401`, `403`, or `404`, verify the token permissions, vendor account status, and the exact endpoint path in the current Vultr API docs.
+
+The action retries `429` responses using Vultr's `Retry-After` header.
