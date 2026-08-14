@@ -1,0 +1,29 @@
+name: Smoke Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: List marketplace operating systems
+        id: os
+        uses: ./
+        with:
+          api-key: ${{ secrets.VULTR_API_KEY }}
+          operation: list-operating-systems
+          query: |
+            {
+              "per_page": 1
+            }
+
+      - name: Check response
+        shell: bash
+        run: |
+          test "${{ steps.os.outputs.status }}" = "200"
+          test -n '${{ steps.os.outputs.response }}'
+          printf 'status=%s\n' '${{ steps.os.outputs.status }}'

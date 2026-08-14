@@ -1,0 +1,98 @@
+name: Vultr Marketplace API
+description: Interact with Vultr Marketplace API endpoints from GitHub Actions.
+author: Vultr
+
+inputs:
+  api-key:
+    description: Vultr API key. Prefer passing secrets.VULTR_API_KEY.
+    required: true
+  operation:
+    description: Named Marketplace operation to run. Omit when using method and path directly.
+    required: false
+  method:
+    description: HTTP method for raw requests or to override a named operation method.
+    required: false
+  path:
+    description: Raw API path, relative to api-base, for requests not covered by operation.
+    required: false
+  api-base:
+    description: Vultr API base URL.
+    required: false
+    default: https://api.vultr.com/v2
+  app-id:
+    description: Marketplace app ID used by app-scoped operations.
+    required: false
+  variable-id:
+    description: Marketplace app variable ID used by variable operations.
+    required: false
+  gallery-image-id:
+    description: Marketplace gallery image ID used by gallery image operations.
+    required: false
+  image-id:
+    description: Marketplace image ID. Alias for gallery-image-id and used by deprecated app variable listing.
+    required: false
+  build-id:
+    description: Marketplace app build ID used by build operations.
+    required: false
+  snapshot-id:
+    description: Snapshot ID used by create-build-from-snapshot.
+    required: false
+  version:
+    description: Build version used by create-build-from-snapshot, create-build-from-vendor-data, and set-build-version.
+    required: false
+  use-vendor-data:
+    description: Whether to create a build from vendor data. Defaults to true for create-build-from-vendor-data.
+    required: false
+  installation-script:
+    description: Installation script used by create-build-from-vendor-data.
+    required: false
+  os-id:
+    description: Operating system ID used by create-build-from-vendor-data.
+    required: false
+  vendor-user-id:
+    description: Marketplace vendor user ID used by vendor user operations.
+    required: false
+  query:
+    description: JSON object of query string parameters.
+    required: false
+  body:
+    description: JSON request body, or raw text when content-type is not json.
+    required: false
+  body-file:
+    description: Path to a file whose contents should be used as the request body.
+    required: false
+  file:
+    description: Path to a file to upload. Image operations convert this to Vultr's required base64 JSON field.
+    required: false
+  base64-field:
+    description: JSON field name to use when encoding file as base64. Auto-detected for image operations.
+    required: false
+  file-field:
+    description: Multipart field name for file uploads.
+    required: false
+    default: file
+  file-name:
+    description: File name to report for multipart uploads. Defaults to the file basename.
+    required: false
+  content-type:
+    description: Request content mode. One of auto, json, base64-json, multipart, binary, or text.
+    required: false
+    default: auto
+  fail-on-error:
+    description: Fail the action for non-2xx Vultr responses.
+    required: false
+    default: "true"
+
+outputs:
+  status:
+    description: HTTP response status code.
+  response:
+    description: Response body as text. JSON responses are returned as compact JSON text.
+  headers:
+    description: Response headers as a JSON object.
+  build-id:
+    description: Marketplace build image ID for build operations.
+
+runs:
+  using: node24
+  main: src/index.js
